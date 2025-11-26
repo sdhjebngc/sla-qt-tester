@@ -168,7 +168,11 @@ function App() {
                   <p className="text-sm">无文件</p>
                 </div>
               ) : (
-                <FileTree nodes={fileTree} onFileClick={handleFileClick} />
+                <FileTree 
+                  key={selectedProject.path} 
+                  nodes={fileTree} 
+                  onFileClick={handleFileClick} 
+                />
               )}
             </div>
         </aside>
