@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { scanUnitTests, runUnitTest, analyzeTestFailure } from '../api/unit-test'
 import type { UnitTestFile, TestResult } from '../api/unit-test'
+import { renderMarkdown } from '../utils/markdown'
 
 interface UnitTestPanelProps {
   projectPath: string
@@ -263,15 +264,27 @@ export function UnitTestPanel({ projectPath }: UnitTestPanelProps) {
             {/* AI 分析结果 */}
             {selectedAnalysis && (
               <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-100 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-100 mb-3 flex items-center gap-2">
                   <span>🤖</span>
                   <span>AI 分析结果</span>
                 </h4>
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-sans">
-                    {selectedAnalysis}
-                  </pre>
-                </div>
+                <div 
+                  className="prose prose-sm dark:prose-invert max-w-none overflow-x-auto
+                    prose-headings:text-purple-900 dark:prose-headings:text-purple-100
+                    prose-p:text-gray-800 dark:prose-p:text-gray-200 prose-p:break-words
+                    prose-code:text-purple-600 dark:prose-code:text-purple-400
+                    prose-code:bg-purple-100 dark:prose-code:bg-purple-900/30
+                    prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:break-all
+                    prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:overflow-x-auto
+                    prose-pre:max-w-full prose-pre:whitespace-pre-wrap prose-pre:break-words
+                    prose-strong:text-purple-900 dark:prose-strong:text-purple-100
+                    prose-ul:text-gray-800 dark:prose-ul:text-gray-200
+                    prose-ol:text-gray-800 dark:prose-ol:text-gray-200
+                    prose-li:break-words
+                    [&_pre]:max-w-full [&_pre]:overflow-x-auto
+                    [&_code]:max-w-full [&_code]:break-words"
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(selectedAnalysis) }}
+                />
               </div>
             )}
 
