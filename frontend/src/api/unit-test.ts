@@ -54,8 +54,15 @@ export async function scanUnitTests(projectPath: string): Promise<UnitTestFile[]
 /**
  * 运行单元测试
  */
-export async function runUnitTest(executablePath: string, testName: string): Promise<TestResult> {
-  return callPy<TestResult>('run_unit_test', executablePath, testName)
+export async function runUnitTest(executablePath: string, testName: string, projectPath: string): Promise<TestResult> {
+  return callPy<TestResult>('run_unit_test', executablePath, testName, projectPath)
+}
+
+/**
+ * 运行 UI 测试（含截图记录）
+ */
+export async function runUiTest(executablePath: string, testName: string, projectPath: string): Promise<TestResult> {
+  return callPy<TestResult>('run_ui_test_with_record', executablePath, testName, projectPath)
 }
 
 /**

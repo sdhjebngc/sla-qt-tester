@@ -11,8 +11,11 @@ from core.qt_project import (
     scan_directory_tree,
     scan_unit_tests,
     run_unit_test,
+    run_ui_test,
+    TestRecorder,
     analyze_test_failure,
 )
+from core.database import TestDatabase
 from core.utils.logger import logger
 import platform
 import sys
@@ -28,6 +31,9 @@ class API:
         self.user_service = UserService()
         # 获取 playground 目录路径
         self.playground_dir = Path(__file__).parent.parent / "playground"
+        # 初始化测试数据库和记录器
+        self.test_db = TestDatabase()
+        self.test_recorder = TestRecorder(self.test_db)
         logger.info("API 初始化完成")
 
     # ==================== 计算器 API ====================
@@ -208,20 +214,45 @@ class API:
         tests = scan_unit_tests(project_path)
         return [test.to_dict() for test in tests]
     
-    def run_unit_test(self, executable_path: str, test_name: str) -> Dict:
+    def run_unit_test(self, executable_path: str, test_name: str, project_path: str) -> Dict:
         """
-        运行单元测试
+        运行单元测试并记录
         
         Args:
             executable_path: 测试可执行文件路径
             test_name: 测试名称
+            project_path: 项目路径
             
         Returns:
-            测试结果
+            测试结果（含 run_id）
         """
         logger.info(f"运行单元测试: {test_name}")
         result = run_unit_test(executable_path, test_name)
-        return result.to_dict()
+        
+        # 记录到数据库
+        run_id = self.test_recorder.record_unit_test(project_path, result)
+        
+        return {**result.to_dict(), "run_id": run_id}
+    
+    def run_ui_test_with_record(self, executable_path: str, test_name: str, project_path: str) -> Dict:
+        """
+        运行 UI 测试并记录（含截图）
+        
+        Args:
+            executable_path: 测试可执行文件路径
+            test_name: 测试名称
+            project_path: 项目路径
+            
+        Returns:
+            测试结果（含 run_id）
+        """
+        logger.info(f"运行 UI 测试: {test_name}")
+        result = run_ui_test(executable_path, test_name, project_path)
+        
+        # 记录到数据库（含截图）
+        run_id = self.test_recorder.record_ui_test(project_path, result)
+        
+        return {**result.to_dict(), "run_id": run_id}
     
     def analyze_test_failure(
         self, 
@@ -328,3 +359,78 @@ class API:
         except Exception as e:
             logger.error(f"读取文件失败: {e}")
             return {"error": str(e), "content": None}
+    
+    # ==================== 测试历史记录 API ====================
+    
+    def get_test_history(self, project_path: str, limit: int = 50) -> List[Dict]:
+        """
+        获取测试历史记录
+        
+        Args:
+            project_path: 项目路径
+            limit: 返回记录数量
+            
+        Returns:
+            测试历史列表
+        """
+        logger.info(f"获取测试历史: {project_path}")
+        runs = self.test_db.get_test_runs(project_path, limit)
+        return [run.to_dict() for run in runs]
+    
+    def get_test_detail(self, run_id: int) -> Dict:
+        """
+        获取测试详情（含用例详情和截图）
+        
+        Args:
+            run_id: 测试运行 ID
+            
+        Returns:
+            测试详情
+        """
+        logger.info(f"获取测试详情: run_id={run_id}")
+        detail = self.test_db.get_test_run_detail(run_id)
+        if detail:
+            return detail.to_dict()
+        return {"error": "测试记录不存在"}
+    
+    def update_test_ai_analysis(self, run_id: int, analysis: str) -> Dict:
+        """
+        更新测试的 AI 分析报告
+        
+        Args:
+            run_id: 测试运行 ID
+            analysis: AI 分析内容
+            
+        Returns:
+            操作结果
+        """
+        logger.info(f"更新 AI 分析: run_id={run_id}")
+        self.test_recorder.update_ai_analysis(run_id, analysis)
+        return {"success": True}
+    
+    def get_test_statistics(self, project_path: str) -> Dict:
+        """
+        获取项目测试统计
+        
+        Args:
+            project_path: 项目路径
+            
+        Returns:
+            统计信息
+        """
+        logger.info(f"获取测试统计: {project_path}")
+        return self.test_db.get_statistics(project_path)
+    
+    def cleanup_old_tests(self, days: int = 30) -> Dict:
+        """
+        清理旧测试记录
+        
+        Args:
+            days: 保留天数
+            
+        Returns:
+            清理结果
+        """
+        logger.info(f"清理 {days} 天前的测试记录")
+        deleted = self.test_db.cleanup_old_records(days)
+        return {"deleted": deleted, "success": True}

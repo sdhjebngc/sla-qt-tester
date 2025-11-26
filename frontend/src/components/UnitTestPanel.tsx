@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { scanUnitTests, runUnitTest, analyzeTestFailure } from '../api/unit-test'
+import { scanUnitTests, runUnitTest, runUiTest, analyzeTestFailure } from '../api/unit-test'
 import type { UnitTestFile, TestResult } from '../api/unit-test'
 import { renderMarkdown } from '../utils/markdown'
+import { TestHistoryPanel } from './TestHistoryPanel'
 
 interface UnitTestPanelProps {
   projectPath: string
@@ -9,6 +10,7 @@ interface UnitTestPanelProps {
 }
 
 export function UnitTestPanel({ projectPath, onViewFile }: UnitTestPanelProps) {
+  const [activeTab, setActiveTab] = useState<'tests' | 'history'>('tests')
   const [tests, setTests] = useState<UnitTestFile[]>([])
   const [results, setResults] = useState<Map<string, TestResult>>(new Map())
   const [running, setRunning] = useState<Set<string>>(new Set())
@@ -40,7 +42,14 @@ export function UnitTestPanel({ projectPath, onViewFile }: UnitTestPanelProps) {
 
     setRunning(prev => new Set(prev).add(test.name))
     try {
-      const result = await runUnitTest(test.executable_path, test.name)
+      // 判断是否为 UI 测试（包含 ui 或 interaction 关键字）
+      const isUiTest = test.name.toLowerCase().includes('ui') || 
+                       test.name.toLowerCase().includes('interaction')
+      
+      const result = isUiTest
+        ? await runUiTest(test.executable_path, test.name, projectPath)
+        : await runUnitTest(test.executable_path, test.name, projectPath)
+      
       setResults(prev => new Map(prev).set(test.name, result))
       setSelectedTest(test.name)
     } catch (error) {
@@ -110,26 +119,57 @@ export function UnitTestPanel({ projectPath, onViewFile }: UnitTestPanelProps) {
   const selectedAnalysis = selectedTest ? aiAnalysis.get(selectedTest) : null
 
   return (
-    <div className="space-y-4">
-      {/* 操作按钮 */}
-      <div className="flex gap-2">
+    <div className="flex flex-col h-full">
+      {/* 标签页 */}
+      <div className="flex gap-2 border-b mb-4">
         <button
-          onClick={handleScan}
-          disabled={loading}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 text-sm"
+          onClick={() => setActiveTab('tests')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'tests'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
         >
-          {loading ? '扫描中...' : '🔄 扫描测试'}
+          📝 运行测试
         </button>
         <button
-          onClick={handleRunAll}
-          disabled={tests.length === 0 || running.size > 0}
-          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 text-sm"
+          onClick={() => setActiveTab('history')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'history'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
         >
-          ▶ 运行全部
+          📊 测试历史
         </button>
       </div>
 
-      {/* 测试列表 */}
+      {/* 标签页内容 */}
+      {activeTab === 'history' ? (
+        <div className="flex-1 overflow-hidden">
+          <TestHistoryPanel projectPath={projectPath} />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto space-y-4">
+          {/* 操作按钮 */}
+          <div className="flex gap-2">
+            <button
+              onClick={handleScan}
+              disabled={loading}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 text-sm"
+            >
+              {loading ? '扫描中...' : '🔄 扫描测试'}
+            </button>
+            <button
+              onClick={handleRunAll}
+              disabled={tests.length === 0 || running.size > 0}
+              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 text-sm"
+            >
+              ▶ 运行全部
+            </button>
+          </div>
+
+          {/* 测试列表 */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">
           📁 测试文件列表
@@ -253,7 +293,7 @@ export function UnitTestPanel({ projectPath, onViewFile }: UnitTestPanelProps) {
             </div>
 
             {/* 测试用例详情 */}
-            {selectedResult.details.length > 0 && (
+            {selectedResult.details && selectedResult.details.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   测试用例
@@ -317,6 +357,8 @@ export function UnitTestPanel({ projectPath, onViewFile }: UnitTestPanelProps) {
               </pre>
             </details>
           </div>
+        </div>
+      )}
         </div>
       )}
     </div>
