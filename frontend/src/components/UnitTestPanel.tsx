@@ -145,12 +145,13 @@ export function UnitTestPanel({ projectPath, onViewFile }: UnitTestPanelProps) {
       </div>
 
       {/* 标签页内容 */}
-      {activeTab === 'history' ? (
-        <div className="flex-1 overflow-hidden">
-          <TestHistoryPanel projectPath={projectPath} />
-        </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto space-y-4">
+      {/* 测试历史标签页 */}
+      <div className={`flex-1 overflow-hidden ${activeTab === 'history' ? '' : 'hidden'}`}>
+        <TestHistoryPanel projectPath={projectPath} />
+      </div>
+
+      {/* 运行测试标签页 */}
+      <div className={`flex-1 overflow-y-auto space-y-4 ${activeTab === 'tests' ? '' : 'hidden'}`}>
           {/* 操作按钮 */}
           <div className="flex gap-2">
             <button
@@ -359,8 +360,7 @@ export function UnitTestPanel({ projectPath, onViewFile }: UnitTestPanelProps) {
           </div>
         </div>
       )}
-        </div>
-      )}
+      </div>
     </div>
   )
 }
