@@ -12,7 +12,7 @@ watchdog>=6.0.0
 pyobjc>=10.0; sys_platform == 'darwin'
 
 # Windows 推荐
-# pywin32>=306; sys_platform == 'win32'
+pywin32>=306; sys_platform == 'win32'
 
 # Linux 推荐 (需要系统安装 GTK)
 # PyGObject>=3.46.0; sys_platform == 'linux'

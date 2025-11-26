@@ -4,6 +4,7 @@
 import subprocess
 import time
 import socket
+import platform
 from pathlib import Path
 from .config import FRONTEND_DIR, DEV_SERVER_PORT
 from core.utils.logger import logger
@@ -54,10 +55,13 @@ def start_vite() -> subprocess.Popen:
     if not package_json.exists():
         raise FileNotFoundError(f"找不到 package.json: {package_json}")
 
-    # 启动 Vite
+    # 启动 Vite（跨平台）
     try:
+        # Windows 需要 .cmd 扩展名
+        pnpm_cmd = "pnpm.cmd" if platform.system() == "Windows" else "pnpm"
+        
         process = subprocess.Popen(
-            ["pnpm", "run", "dev"],
+            [pnpm_cmd, "run", "dev"],
             cwd=str(FRONTEND_DIR),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,

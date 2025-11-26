@@ -5,6 +5,7 @@
 from pathlib import Path
 from typing import List, Optional
 from dataclasses import dataclass, asdict
+import platform
 import re
 
 
@@ -44,12 +45,8 @@ def scan_unit_tests(project_path: str) -> List[UnitTestFile]:
     for test_file in tests_dir.glob("test_*.cpp"):
         test_name = test_file.stem  # 去掉 .cpp 后缀
         
-        # 查找对应的可执行文件
-        executable_path = build_dir / test_name
-        
-        # macOS 可能是 .app 包
-        if not executable_path.exists():
-            executable_path = build_dir / f"{test_name}.app" / "Contents" / "MacOS" / test_name
+        # 查找对应的可执行文件（跨平台）
+        executable_path = _find_test_executable(build_dir, test_name)
         
         test_info = UnitTestFile(
             name=test_name,
@@ -60,6 +57,39 @@ def scan_unit_tests(project_path: str) -> List[UnitTestFile]:
         test_files.append(test_info)
     
     return test_files
+
+
+def _find_test_executable(build_dir: Path, test_name: str) -> Path:
+    """
+    跨平台查找测试可执行文件
+    
+    Args:
+        build_dir: build/tests 目录
+        test_name: 测试名称
+        
+    Returns:
+        可执行文件路径（可能不存在）
+    """
+    system = platform.system()
+    
+    if system == "Windows":
+        # Windows: test_name.exe
+        executable_path = build_dir / f"{test_name}.exe"
+        
+    elif system == "Darwin":  # macOS
+        # 优先尝试 .app 包（Qt 默认）
+        app_path = build_dir / f"{test_name}.app" / "Contents" / "MacOS" / test_name
+        if app_path.exists():
+            return app_path
+        
+        # 回退到普通可执行文件
+        executable_path = build_dir / test_name
+        
+    else:  # Linux 和其他 Unix-like 系统
+        # Linux: test_name (无扩展名)
+        executable_path = build_dir / test_name
+    
+    return executable_path
 
 
 def parse_test_cases_from_source(source_file: str) -> List[str]:
