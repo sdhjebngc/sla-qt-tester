@@ -313,6 +313,25 @@ class Pipeline:
                 success = reco_result.success
                 if node.inverse:
                     success = not success
+                # 识别失败也截图，文件名加_fail
+                import cv2, pyautogui, os, re
+                img = pyautogui.screenshot()
+                img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+                if reco_result.box:
+                    box = reco_result.box
+                    cv2.rectangle(img, (box.x, box.y), (box.x + box.width, box.y + box.height), (0,0,255), 3)
+                log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'log')
+                os.makedirs(log_dir, exist_ok=True)
+                idx = list(self._nodes.keys()).index(str(current_node)) + 1
+                # 文件名加_fail后缀表示失败
+                if not success:
+                    save_path = os.path.join(log_dir, f"node_{idx}_fail.png")
+                else:
+                    save_path = os.path.join(log_dir, f"node_{idx}.png")
+                try:
+                    cv2.imwrite(save_path, img)
+                except Exception as e:
+                    self._log(f"截图保存失败: {e}")
                 if not success:
                     # 识别失败，尝试下一个 next 节点
                     next_node = self._find_next_node(node)
@@ -323,25 +342,7 @@ class Pipeline:
                         # 超时处理
                         self._log(f"节点 {current_node} 识别超时")
                         break
-                # 执行动作前，保存截图（只在识别成功时）
                 self._log(f"识别成功，分数: {reco_result.score:.3f}")
-                try:
-                    import cv2, pyautogui, os, re
-                    img = pyautogui.screenshot()
-                    img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-                    # 如果有 box，画红框
-                    if reco_result.box:
-                        box = reco_result.box
-                        cv2.rectangle(img, (box.x, box.y), (box.x + box.width, box.y + box.height), (0,0,255), 3)
-                    log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'log')
-                    os.makedirs(log_dir, exist_ok=True)
-                    # 节点名转文件名，去除非法字符
-                    # 统一用英文序号命名，避免中文乱码
-                    idx = list(self._nodes.keys()).index(str(current_node)) + 1
-                    save_path = os.path.join(log_dir, f"node_{idx}.png")
-                    cv2.imwrite(save_path, img)
-                except Exception as e:
-                    self._log(f"截图保存失败: {e}")
                 result.executed_nodes.append(current_node)
                 result.last_node = current_node
                 # 动作前延迟
