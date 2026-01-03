@@ -94,3 +94,59 @@ target_include_directories(test_diagrampath PRIVATE
 )
 
 add_test(NAME test_diagrampath COMMAND test_diagrampath)
+
+# 测试 5: Arrow 连接集成测试
+qt_add_executable(test_arrow_connection
+    test_arrow_connection.cpp
+    ../diagramscene.cpp
+    ../diagramitem.cpp
+    ../diagramitemgroup.cpp
+    ../diagrampath.cpp
+    ../diagramtextitem.cpp
+    ../arrow.cpp
+    ../mainwindow.cpp
+    ../findreplacedialog.cpp
+    ../mygraphicsview.cpp
+    ../deletecommand.cpp
+    ../snapshotcommand.cpp
+)
+
+target_link_libraries(test_arrow_connection PRIVATE
+    Qt6::Test
+    Qt6::Widgets
+    Qt6::Svg
+)
+
+target_include_directories(test_arrow_connection PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+add_test(NAME test_arrow_connection COMMAND test_arrow_connection)
+
+# 测试 6: 图元操作集成测试
+qt_add_executable(test_item_operations
+    test_item_operations.cpp
+    ../diagramscene.cpp
+    ../diagramitem.cpp
+    ../diagramitemgroup.cpp
+    ../diagrampath.cpp
+    ../diagramtextitem.cpp
+    ../arrow.cpp
+    ../mainwindow.cpp
+    ../findreplacedialog.cpp
+    ../mygraphicsview.cpp
+    ../deletecommand.cpp
+    ../snapshotcommand.cpp
+)
+
+target_link_libraries(test_item_operations PRIVATE
+    Qt6::Test
+    Qt6::Widgets
+    Qt6::Svg
+)
+
+target_include_directories(test_item_operations PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+add_test(NAME test_item_operations COMMAND test_item_operations)
